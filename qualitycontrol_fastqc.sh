@@ -16,7 +16,7 @@ home_fastq="/home/rstudio/data/mydatalocal/data_from_ftp/igfl_data_seq/Projet_31
 fastq=$home_fastq/"*.gz"
 
 #loop for to apply fastqc to each sequence
-for sample in fastq
+for sample in $fastq
 do
   echo $sample
   fastqc $sample --outdir $data/$data_fastqc
