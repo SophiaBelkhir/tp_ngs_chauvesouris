@@ -1,2 +1,7 @@
-# TP NGS Chauve-Souris
-read me du projet tp NGS
+# TP NGS Bats 
+## Objectives - Characterization of the IFN response in bats
+
+**Step 1: De novo assembly** 
+- 
+- 
+- 
