@@ -2,7 +2,7 @@
 #Script to do quality control of sequences before assembly
  
 #Create working directory
-data="/home/rstudio/data/mydatalocal/data"
+data="/home/rstudio/data/mydatalocal/data_from_ftp"
 mkdir -p $data
 cd $data
 
@@ -19,5 +19,5 @@ fastq=$home_fastq/"*.gz"
 for sample in fastq
 do
   echo $sample
-  fastqc $sample --outdir $data/$data_fastq
+  fastqc $sample --outdir $data/$data_fastqc
 done 
