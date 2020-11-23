@@ -15,9 +15,7 @@ Download the raw RNA-seq data from the IGFL sequencing platform using the comman
 Th first step is to assemble the transcriptome of *Myotis velifer*. Because no reference transcriptome is available for this species, we perform a *de novo* transcriptome assembly. We use all 6 sequenced samples together to assemble the transcriptome. 
 
 - **Quality control:** We first need control the quality of the reads. We run fastqc on each of the obtained sequences, using the script **qualitycontrol_fastqc.sh**. Fastqc analyzes the quality of sequences using several statistics. Here is an overview of the fastqc report for representative sequence. 
-![fastqc report](/home/rstudio/data/mydatalocal/imagesreadme/report_fastqc.png)
-
-
+![fastqc report](/home/rstudio/data/mydatalocal/tp_ngs_chauvesouris/imagesreadme/report_fastqc.png)
 
 
 -  **Read trimming:** Trimmomatic **trimmomatic.sh**. Then verification with fastqc again **control_fastqc_after_trimm.sh**
