@@ -30,6 +30,7 @@ Then we verify the quality of the trimmed sequenced using fastqc on the outputs 
 Overall, the quality is now satisfying, and we can proceed to the assembly, using the fastq sequences stored in the outputs_trimmomatic directory. 
 
 **3) _De novo_ assembly:** 
+
 Once the sequences have been trimmed and are of a good quality, we use Trinity to assemble the transcriptome. We do not separate the samples for the assembly, and use the paired-end sequences of the 6 samples. We only separate the left and right reads of the samples, because Trinity processes all the right reads together (FASTQ1), and all the left reads together (FASTQ2). We specify the strand-specific RNA-seq read orientation (--SS_lib_type): in our case, the type of sequencing was 'fr-firststrand', which for Trinity corresponds to "RF".
 For the script, see **assembly_trinity.sh**. 
 
@@ -40,13 +41,13 @@ We now have an assembled transcriptome (Trinity_RF.fasta). The next step is to a
 
 ### Step 3: Transcript expression quantification
 
-We now wish to quantify the expression for each sample. To do so, we use salmon. Salmon comprises tools to perform transcript-level quantification from RNA-seq reads using selective alignment. We use salmon index and salmon quant. 
+We now wish to quantify the expression for each sample. To do so, we use salmon. Salmon comprises several tools to perform transcript-level quantification from RNA-seq reads using selective alignment. We use salmon index and salmon quant. 
 
 **1) Creating an index with salmon:** 
 
 To perform quantification, salmon first requires the creation of a specific index for the assembled transcriptome (Trinity_RF.fasta). This is the first part of the **salmon_quantif.sh**.
 
-**2) Quantification:** 
+**2) Quantification with salmon:** 
 
 Then, we proceed to actual quantification with salmon quant. We run salmon quant on each pair of sequences (second part of the **salmon_quantif.sh** script). 
 
