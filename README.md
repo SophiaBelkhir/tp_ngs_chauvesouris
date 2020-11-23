@@ -14,12 +14,14 @@ Download the raw RNA-seq data from the IGFL sequencing platform using the comman
 ### Step 1: De novo assembly 
 Th first step is to assemble the transcriptome of *Myotis velifer*. Because no reference transcriptome is available for this species, we perform a *de novo* transcriptome assembly. We use all 6 sequenced samples together to assemble the transcriptome. 
 
-- **Quality control:** We first need control the quality of the reads. We run fastqc on each of the obtained sequences, using the script **qualitycontrol_fastqc.sh**. Fastqc analyzes the quality of sequences using several statistics. Here is an overview of the fastqc report for representative sequence. 
+- **Quality control:** We first need control the quality of the reads. We run fastqc on each of the obtained sequences, using the script **qualitycontrol_fastqc.sh**. Fastqc analyzes the quality of sequences using several statistics. Here is an overview of the fastqc report for a representative sequence. 
 ![fastqc report](/imagesreadme/report_fastqc.png)
+The quality of the first and last bases of the sequences is quite poor. This is due to the artefacts of sequencing, that also cause the presence of adapters at the end of sequences. We need to trim the sequences before starting the assembly. 
 
-
--  **Read trimming:** Trimmomatic **trimmomatic.sh**. Then verification with fastqc again **control_fastqc_after_trimm.sh**
-
+-  **Sequences trimming:** We use Trimmomatic, a tool to perform quality trimming, adapter clipping, and eliminate reads that are too short. We use the script **trimmomatic.sh** to run Trimmomatic for each pair of sequences, with the following parameters: ILUMINACLIP:2:30:10, HEADCROP: 9, MINLEN: 100.  
+Then we verify the quality of the trimmed sequenced using fastqc on the outputs from Trimmomatic:  **control_fastqc_after_trimm.sh**.
+![fastqc after trimming report](/imagesreadme/report_fastqc_aftertrimm.png)
+Overall, the quality is now satisfying, and we can proceed to the assembly. 
 
 - **_De novo_ assembly:** Trinity **assembly_trinity.sh**
 
