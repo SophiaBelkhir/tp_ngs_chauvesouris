@@ -13,7 +13,7 @@ cd $output_index
 #Run salmon index
 salmon index -t $data/trinity_data/Trinity_RF.fasta -i $data/$output_index -p 4
 
-#For the quantification 
+#For the quantification: run salmon quant
 
 #Library of each pair of reads, to use in the loop for salmon quant
 library_reads="Lib1_31_20_S1
