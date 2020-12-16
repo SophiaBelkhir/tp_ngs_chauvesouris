@@ -26,5 +26,5 @@ Lib6_31_20_S6"
 #run salmon quant for each sample
 for lib in $library_reads
 do
-  salmon quant -i $data/$output_index -l A -1 $data/outputs_trimmomatic/${lib}_1_paired.fq.gz -2 $data/outputs_trimmomatic/${lib}_2_paired.fq.gz --validateMappings -o $data/$output_index
+  salmon quant -i $data/$output_index -l A -1 $data/outputs_trimmomatic/${lib}_1_paired.fq.gz -2 $data/outputs_trimmomatic/${lib}_2_paired.fq.gz --validateMappings --gcBias -p 4 -o $data/$output_index/salmon_$lib
 done
