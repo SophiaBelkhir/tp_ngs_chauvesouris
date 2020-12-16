@@ -1,0 +1,86 @@
+---
+title: "Bats_DEseq_without3"
+output: html_document
+---
+```{r}
+#import library to be able to build table count for each gene
+library("tximport")
+library(DESeq2)
+
+#set working directory
+setwd("/ifb/data/mydatalocal/data_from_ftp")
+```
+
+Import the files, we need a variable that contains the name of the files quant.sf
+```{r}
+dir <- "/ifb/data/mydatalocal/data_from_ftp/outputs_salmon" #the directory where we look for the files
+all_files <- list.files(dir)
+
+#get the quant.sf files for all samples
+#initialisation
+files_Lib <- c()
+names_file <- c()
+i <- 1
+
+#loop to get all the files in the same place
+for (name in all_files) {
+    if (grepl("salmon_Lib",as.character(name))==TRUE) {
+      files_Lib[i] <-  file.path(dir,name,"quant.sf", fsep="/")
+      names_file[i] <- c(name)
+      i <- i+1
+      }
+  }
+
+names(files_Lib) <- names_file #give them names
+
+file_wo3 <- files_Lib[-3] #Remove Lib3 (CTL that was an outlier)
+```
+
+Now we build reading table from the trinity gene trans map, to have the correspondance between gene and transcript
+```{r}
+Tab_trini <- read.table("/ifb/data/mydatalocal/data_from_ftp/trinity_data/Trinity_RF.fasta.gene_trans_map") #get the fasta.gene_trans_map
+names(Tab_trini) <- c("GENEID","TXNAME") #to have the right column names
+Tab_trini <- Tab_trini[,c(2,1)] #to have the right order: TXNAME as first column, GENEID as second
+```
+
+Now let's build a table with the count from each gene from the outputs of salmon 
+```{r}
+txi <- tximport(file_wo3, type = "salmon", tx2gene = Tab_trini)
+names(txi) #outputs, we obtained 3 tables: abundance, counts, and length
+head(txi$counts) #what's interesting for DESeq is the counts
+```
+
+Now let's use DESeq
+```{r}
+#build table of correspondence wich sample is + or - IFN
+samp.name <- colnames(txi$counts)
+samp.type <- factor(c("CTL","CTL","IFN","IFN","IFN")) #2 first are control, 3 last are +IFN
+samples <- data.frame(run=samp.name,condition=samp.type)
+
+#now build DESeq object (dds)
+ddsTxi <- DESeqDataSetFromTximport(txi, colData = samples, design = ~ condition)
+
+#Run DEseq
+dds <- DESeq(ddsTxi)
+res <- results(dds)
+res
+#save the table
+write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeqRes_withoutLib3.tab")
+
+#count nb of significative p-values
+table(res$padj <0.05) #nb of tests that are under the threshold of 0.05 #1670
+```
+Now we do control quality, and verifiy that there is no abnormality with the replicates (samples from the same conditions have to be closer than different conditions)
+
+```{r}
+#MA-plot 
+plotMA(res, ylim=c(-2,2))
+```
+
+```{r}
+#PCA
+vsd <- vst(dds, blind=FALSE)
+plotPCA(vsd, intgroup=c("condition"))
+plotPCA(vsd, intgroup=c("condition","run"))
+#Now the conditions are grouped together. 
+```
