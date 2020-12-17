@@ -65,7 +65,7 @@ dds <- DESeq(ddsTxi)
 res <- results(dds)
 res
 #save the table
-write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeqRes_withoutLib3.tab")
+write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeq/DESeqRes_withoutLib3.tab")
 
 #count nb of significative p-values
 table(res$padj <0.05) #nb of tests that are under the threshold of 0.05 #1670

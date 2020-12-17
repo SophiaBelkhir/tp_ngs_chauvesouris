@@ -8,9 +8,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-#import library to be able to build table count for each gene
-library("tximport")
-library(DESeq2)
+#import libraries to be able to build table count for each gene
+library("tximport") #for tximport
+library(DESeq2) #for the differential expression analysis
+library(biomaRt) #to automatically request ensembl identifiers
+library(dplyr) #for the manipulation of data 
+library(tidyr)
+library(data.table)
+library(ggplot2) #for graphs
 
 #set working directory
 setwd("/ifb/data/mydatalocal/data_from_ftp")
@@ -68,7 +73,7 @@ dds <- DESeq(ddsTxi)
 res <- results(dds)
 res
 #save the table
-write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeqRes.tab")
+#write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeq/DESeqRes.tab")
 
 #count nb of significative p-values
 table(res$padj <0.05) #nb of tests that are under the threshold of 0.05 #1457
@@ -87,3 +92,134 @@ plotPCA(vsd, intgroup=c("condition","run"))
 #The Lib3 (CTL) is an outlier, and is not grouped with the other samples from the same condition. It can be explained because the RNA library was built a different day from the 2 others. 
 ```
 
+```{r}
+#To have an idea, let's plot the counts for the gene with the lowest adjusted p value
+plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
+```
+Now we want to cross  the results of Blast with the outputs from DEseq, in order to identify all the genes (or at least their corresponding human CDS)
+```{r}
+#Import Blast table
+Blast <- read.table("/ifb/data/mydatalocal/data_from_ftp/blast_data/DataBats.blast")
+
+#now we make the correspondence between ENSEMBL identifiers and external human gene names, using biomaRt
+# match gene/transcript names
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+tx2geneHomo = biomaRt::getBM(attributes=c('ensembl_transcript_id', 
+                                      'ensembl_gene_id', 'external_gene_name'),mart=ensembl)
+# add gene name to the blast outputs. we can probably do much better!!
+blastHomo<-data.table(Blast)
+blastHomo<-blastHomo[, c("trid", "version") := tstrsplit(V2, ".", fixed=TRUE)][]
+blastHomo<-blastHomo[, c("gene", "alttr") := tstrsplit(V1, "_i", fixed=TRUE)][]
+
+blastHomo1 <- blastHomo%>% group_by(gene)%>% slice_max(order_by = V12, n = 1, with_ties = TRUE)
+
+blastHomoName<-merge(tx2geneHomo,blastHomo1,by.x="ensembl_transcript_id",by.y="trid") #to merge the 2 dataframe, one with the Blast output and ensembl names (blastHomo1), and one with the ensemble and external gene names (tx2gneHomo)
+
+blastHomoNameUniq<-unique(blastHomoName[,c("ensembl_gene_id","external_gene_name","gene")]) #unique, to remove the duplicates
+
+# associate our DE results with gene names from human
+resUsName=merge(res,blastHomoNameUniq,by.x=0,by.y="gene")
+#view(ResUsName)
+#save this table
+#write.csv(resUsName,file="/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_foldchange_genes.csv")
+```
+
+Analyze the data
+```{r}
+table(resUsName$padj <0.05) #Number of genes identified as significatively differently expressed (with inteferon vs without) (578)
+table(resUsName$padj <0.05 & resUsName$log2FoldChange>0) #Number of genes significatively UPregulated (421)
+table(resUsName$padj <0.05 & resUsName$log2FoldChange<0) #Number of genes significatively DOWNregulated (157)
+
+#filter the downregulated and upregulated genes
+UpReg <- filter(resUsName, padj<0.05 & resUsName$log2FoldChange>0)
+DownReg <- filter(resUsName, padj<0.05 & resUsName$log2FoldChange<0)
+AllReg <- filter(resUsName, padj<0.05)
+
+#export for Gene Ontology
+#quotes=F #row.names=F
+write.csv(as.data.frame(resUsName$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_all.csv",quote=FALSE,row.names = FALSE)
+
+write.csv(as.data.frame(UpReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_up.csv",quote=FALSE,row.names = FALSE)
+
+write.csv(as.data.frame(DownReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_down.csv",quote=FALSE,row.names = FALSE)
+
+write.csv(as.data.frame(AllReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_all_reg.csv",quote=FALSE,row.names = FALSE)
+
+```
+
+```{r}
+#Compare with publications 
+# publi,Holzer  6h
+resBatHolzer<-read.csv("https://www.rna.uni-jena.de/supplements/mda/data/deseq2/RNA/Mock_6h_RNA_vs_IFN_6h_RNA/deseq2_Mock_6h_RNA_IFN_6h_RNA_full.csv")
+colnames(resBatHolzer)[2] <- c("external_gene_name") #change column name to be the same as ours
+
+table(resBatHolzer$padj <0.05) #Number of genes identified as significatively differently expressed (with inteferon vs without) (1702)
+table(resBatHolzer$padj <0.05 & resBatHolzer$log2FoldChange>0) #Number of genes significatively UPregulated (1097)
+table(resBatHolzer$padj <0.05 & resBatHolzer$log2FoldChange<0) #Number of genes significatively DOWNregulated (605)
+
+CommonGenesUsHolze <- merge(resUsName,resBatHolzer,by="external_gene_name") #11364 genes in common
+
+#Chi2 test
+#Contingency table
+cont_tb<-table(us=CommonGenesUsHolze$padj.x<0.05,them=CommonGenesUsHolze$padj.y < 0.05)
+chisq.test(cont_tb) #< 2.2e-16
+
+#add a column for our test to know if gene is up-regulated, down-regulated or not regulated
+CommonGenesUsHolze$ourTest="nonreg" #by default
+CommonGenesUsHolze$ourTest[CommonGenesUsHolze$padj.x<0.05&CommonGenesUsHolze$log2FoldChange.x>0]="Up"
+CommonGenesUsHolze$ourTest[CommonGenesUsHolze$padj.x<0.05&CommonGenesUsHolze$log2FoldChange.x<0]="Down"
+#idem for Holzer's test
+CommonGenesUsHolze$theirTest="nonreg"
+CommonGenesUsHolze$theirTest[CommonGenesUsHolze$padj.y<0.05&CommonGenesUsHolze$log2FoldChange.y>0]="Up"
+CommonGenesUsHolze$theirTest[CommonGenesUsHolze$padj.y<0.05&CommonGenesUsHolze$log2FoldChange.y<0]="Down"
+
+cont_tb2 <- table(us=CommonGenesUsHolze$ourTest,them=CommonGenesUsHolze$theirTest)
+chisq.test(cont_tb2) #< 2.2e-16
+
+```
+Bidouille de Marie --> heatmap
+```{r}
+#tentative en ajoutant les annotations de gènes correspondants (attention problème que plusieurs contigs sont associés au même gène)
+
+#install.packages("pheatmap")
+select <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & resUsName$log2FoldChange>0])
+select <-select[1:10]
+row.names(samples)=samples$run
+annot_corresp <- data.frame(resUsName$Row.names,resUsName$external_gene_name) #correspondance names 
+colnames(annot_corresp) <- c("nameTrinity","genename")
+annot_corresp1 <- filter(annot_corresp, annot_corresp$nameTrinity %in% select) #just select for the 10 rows that we're interested in 
+row.names(annot_corresp1) <- annot_corresp1$nameTrinity #je sais pas bien pourquoi si je lui mets pas ça il est pas content 
+
+#row.names(annot_corresp1)<-paste0(annot_corresp1$genename,"_",1:nrow(annot_corresp1)) #tentative avec la suggestion de commande dans le discord pour attribuer un identifiant unique, mais probablement pas appliquée au bon dataframe. 
+
+pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+         cluster_cols=FALSE, annotation_col=samples, annotation_row = annot_corresp1)
+```
+
+
+
+```{r}
+#Version for the 10 first row/genes 
+select <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & resUsName$log2FoldChange>0])
+select <-select[1:10]
+row.names(samples)=samples$run
+
+pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+         cluster_cols=FALSE, annotation_col=samples)
+
+#Version for target selected genes 
+resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
+row.names(resUsNameVsd) <- resUsNameVsd$Row.names
+# row.names(resUsNameVsd) <- resUsNameVsd$external_gene_name
+# resUsNameVsd <- resUsNameVsd[,10:15]
+# 
+# pheatmap(resUsNameVsd[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+#          cluster_cols=FALSE, annotation_col=samples)
+# 
+
+cibles <- c("ACTG1","ADAMTSL4")
+pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+         cluster_cols=FALSE, annotation_col=samples)
+
+
+```
