@@ -23,6 +23,7 @@ setwd("/ifb/data/mydatalocal/data_from_ftp")
 ```
 
 # Building a count table per gene
+Based on the quantifications obtained with salmon, we now want to obtain the expression level for each gene (and not just each transcript or isoform). We build a count table. 
 
 Import the files, we need a variable that contains the name of the files quant.sf
 ```{r}
@@ -37,9 +38,9 @@ i <- 1
 
 #loop to get all the files in the same place
 for (name in all_files) {
-    if (grepl("salmon_Lib",as.character(name))==TRUE) {
-      files_Lib[i] <-  file.path(dir,name,"quant.sf", fsep="/")
-      names_file[i] <- c(name)
+    if (grepl("salmon_Lib",as.character(name))==TRUE) { #take all the files that contain "salmon_Lib" in their name
+      files_Lib[i] <-  file.path(dir,name,"quant.sf", fsep="/") #add the path for the file
+      names_file[i] <- c(name) #add the name of the file 
       i <- i+1
       }
   }
@@ -56,7 +57,7 @@ Tab_trini <- Tab_trini[,c(2,1)] #to have the right order: TXNAME as first column
 
 Now let's build a table with the count from each gene from the outputs of salmon 
 ```{r}
-txi <- tximport(files_Lib, type = "salmon", tx2gene = Tab_trini)
+txi <- tximport(files_Lib, type = "salmon", tx2gene = Tab_trini) #makes the correspondence between isoforms and genes, and crosses it with the quantification by salmon to obtain a count table. 
 names(txi) #outputs, we obtained 3 tables: abundance, counts, and length
 head(txi$counts) #what's interesting for DESeq is the counts
 ```
