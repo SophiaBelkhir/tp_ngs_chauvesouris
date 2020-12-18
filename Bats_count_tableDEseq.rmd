@@ -12,16 +12,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library("tximport") #for tximport
 library(DESeq2) #for the differential expression analysis
 library(biomaRt) #to automatically request ensembl identifiers
-library(dplyr) #for the manipulation of data 
+library(dplyr) #for the manipulation of data frames
 library(tidyr)
 library(data.table)
 library(ggplot2) #for graphs
+library(pheatmap) #for pretty heatmaps
 
 #set working directory
 setwd("/ifb/data/mydatalocal/data_from_ftp")
 ```
 
-# Differential Expression analysis 
+# Building a count table per gene
 
 Import the files, we need a variable that contains the name of the files quant.sf
 ```{r}
@@ -60,6 +61,8 @@ names(txi) #outputs, we obtained 3 tables: abundance, counts, and length
 head(txi$counts) #what's interesting for DESeq is the counts
 ```
 
+# Differential Expression analysis 
+
 Now let's use DESeq
 ```{r}
 #build table of correspondence which sample is + or - IFN
@@ -73,7 +76,7 @@ ddsTxi <- DESeqDataSetFromTximport(txi, colData = samples, design = ~ condition)
 #Run DEseq
 dds <- DESeq(ddsTxi)
 res <- results(dds)
-res
+#res
 #save the table
 #write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeq/DESeqRes.tab")
 
@@ -117,7 +120,7 @@ blastHomoName<-merge(tx2geneHomo,blastHomo1,by.x="ensembl_transcript_id",by.y="t
 blastHomoNameUniq<-unique(blastHomoName[,c("ensembl_gene_id","external_gene_name","gene")]) #unique, to remove the duplicates
 
 #associate our DE results with gene names from human
-resUsName=merge(res,blastHomoNameUniq,by.x=0,by.y="gene")
+resUsName=merge(as.data.frame(res),blastHomoNameUniq,by.x=0,by.y="gene")
 #view(ResUsName)
 #save this table
 #write.csv(resUsName,file="/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_foldchange_genes.csv")
@@ -145,7 +148,7 @@ write.csv(as.data.frame(AllReg$external_gene_name),file="/ifb/data/mydatalocal/d
 ```
 Compare our results with existing results
 ```{r}
-#Compare with publication Holzer  (+6h IFN)
+#Compare with publication Holzer (+6h IFN)
 #import their data
 resBatHolzer<-read.csv("https://www.rna.uni-jena.de/supplements/mda/data/deseq2/RNA/Mock_6h_RNA_vs_IFN_6h_RNA/deseq2_Mock_6h_RNA_IFN_6h_RNA_full.csv")
 colnames(resBatHolzer)[2] <- c("external_gene_name") #change column name to be the same as ours
@@ -185,18 +188,18 @@ pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colname
          cluster_cols=FALSE, annotation_col=samples)
 
 #version with the names 
-select2 <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & abs(resUsName$log2FoldChange)>4])
-row.names(samples)=samples$run
-resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
-row.names(resUsNameVsd) <- resUsNameVsd$Row.names
-h=pheatmap(resUsNameVsd[select2,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
-           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"],fontsize_row=5)
-h
-ggsave(h,file="heatmapUpReg.png")
+#select2 <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & abs(resUsName$log2FoldChange)>4])
+#row.names(samples)=samples$run
+#resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
+#row.names(resUsNameVsd) <- resUsNameVsd$Row.names
+#h=pheatmap(resUsNameVsd[select2,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+#           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"],fontsize_row=5)
+#h
+#ggsave(h,file="heatmapUpReg.png")
 
 #Version for target selected genes 
-cibles <- c("SAMD9L","SAMD9", "SAMHD1","RNASEL") #names of the genes of interest
-pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
-       cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,"external_gene_name"])
+#cibles <- c("SAMD9L","SAMD9", "SAMHD1","RNASEL") #names of the genes of interest
+#pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, #show_rownames=TRUE,show_colnames=FALSE,
+#       cluster_cols=FALSE, annotation_col=samples, #labels_row=resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,"external_gene_name"])
 
 ```

@@ -6,7 +6,10 @@ output: html_document
 #import library to be able to build table count for each gene
 library("tximport")
 library(DESeq2)
-
+library(biomaRt) #to automatically request ensembl identifiers
+library(dplyr) #for the manipulation of data frames
+library(tidyr)
+library(data.table)
 #set working directory
 setwd("/ifb/data/mydatalocal/data_from_ftp")
 ```
@@ -63,9 +66,9 @@ ddsTxi <- DESeqDataSetFromTximport(txi, colData = samples, design = ~ condition)
 #Run DEseq
 dds <- DESeq(ddsTxi)
 res <- results(dds)
-res
+#res
 #save the table
-write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeq/DESeqRes_withoutLib3.tab")
+#write.table(res,"/ifb/data/mydatalocal/data_from_ftp/DESeq/DESeqRes_withoutLib3.tab")
 
 #count nb of significative p-values
 table(res$padj <0.05) #nb of tests that are under the threshold of 0.05 #1670
@@ -75,12 +78,78 @@ Now we do control quality, and verifiy that there is no abnormality with the rep
 ```{r}
 #MA-plot 
 plotMA(res, ylim=c(-2,2))
-```
 
-```{r}
 #PCA
 vsd <- vst(dds, blind=FALSE)
 plotPCA(vsd, intgroup=c("condition"))
 plotPCA(vsd, intgroup=c("condition","run"))
 #Now the conditions are grouped together. 
 ```
+
+Now we want to cross the results of Blast with the outputs from DEseq, in order to identify the names of all the genes (based on their corresponding human CDS)
+```{r}
+#Import Blast table
+Blast <- read.table("/ifb/data/mydatalocal/data_from_ftp/blast_data/DataBats.blast")
+
+#now we make the correspondence between ENSEMBL identifiers and external human gene names, using biomaRt
+#match gene/transcript names
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+tx2geneHomo = biomaRt::getBM(attributes=c('ensembl_transcript_id', 
+                                      'ensembl_gene_id', 'external_gene_name'),mart=ensembl)
+#add gene name to the blast outputs
+blastHomo<-data.table(Blast)
+blastHomo<-blastHomo[, c("trid", "version") := tstrsplit(V2, ".", fixed=TRUE)][]
+blastHomo<-blastHomo[, c("gene", "alttr") := tstrsplit(V1, "_i", fixed=TRUE)][]
+
+blastHomo1 <- blastHomo%>% group_by(gene)%>% slice_max(order_by = V12, n = 1, with_ties = TRUE)
+
+blastHomoName<-merge(tx2geneHomo,blastHomo1,by.x="ensembl_transcript_id",by.y="trid") #to merge the 2 dataframe, one with the Blast output and ensembl names (blastHomo1), and one with the ensemble and external gene names (tx2gneHomo)
+
+blastHomoNameUniq<-unique(blastHomoName[,c("ensembl_gene_id","external_gene_name","gene")]) #unique, to remove the duplicates
+
+#associate our DE results with gene names from human
+resUsName=merge(as.data.frame(res),blastHomoNameUniq,by.x=0,by.y="gene")
+#view(ResUsName)
+#save this table
+write.csv(resUsName,file="/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_foldchange_without3.csv")
+```
+
+Number of genes up and down regulated
+```{r}
+table(resUsName$padj <0.05) #Number of genes identified as significatively differently expressed (with interferon vs without) #696
+table(resUsName$padj <0.05 & resUsName$log2FoldChange>0) #Number of genes significatively UPregulated #521
+table(resUsName$padj <0.05 & resUsName$log2FoldChange<0) #Number of genes significatively DOWNregulated #175
+
+#filter the downregulated and upregulated genes
+UpReg <- filter(resUsName, padj<0.05 & resUsName$log2FoldChange>0)
+DownReg <- filter(resUsName, padj<0.05 & resUsName$log2FoldChange<0)
+AllReg <- filter(resUsName, padj<0.05)
+```
+
+```{r}
+#Genes in common with or withoit Lib3
+#import our table without 
+resWithLib3 <-read.csv("/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_foldchange_genes.csv")
+
+CommonGenesW3 <- merge(resUsName,resWithLib3,by.x="external_gene_name", by.y="external_gene_name")
+
+#Chi2 test
+
+cont_tb<-table(withoutlib3=CommonGenesW3$padj.x<0.05,withlib3=CommonGenesW3$padj.y < 0.05) #Contingency table
+chisq.test(cont_tb) #
+
+#add a column for our test to mark if gene is up-regulated, down-regulated or not regulated
+CommonGenesW3$WithLib3="nonreg" #by default
+CommonGenesW3$WithLib3[CommonGenesW3$padj.x<0.05&CommonGenesW3$log2FoldChange.x>0]="Up"
+CommonGenesW3$WithLib3[CommonGenesW3$padj.x<0.05&CommonGenesW3$log2FoldChange.x<0]="Down"
+#idem for Holzer's test
+CommonGenesW3$WithoutLib3="nonreg"
+CommonGenesW3$WithoutLib3[CommonGenesW3$padj.y<0.05&CommonGenesW3$log2FoldChange.y>0]="Up"
+CommonGenesW3$WithoutLib3[CommonGenesW3$padj.y<0.05&CommonGenesW3$log2FoldChange.y<0]="Down"
+
+cont_tb2 <- table(WithLib3=CommonGenesW3$WithLib3,WithoutLib3=CommonGenesW3$WithoutLib3) #Contingency table 2, for all groups
+chisq.test(cont_tb2) #
+```
+
+
+
