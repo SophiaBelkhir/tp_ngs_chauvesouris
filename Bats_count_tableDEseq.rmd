@@ -210,16 +210,27 @@ pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colname
 #Version for target selected genes 
 resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
 row.names(resUsNameVsd) <- resUsNameVsd$Row.names
-# row.names(resUsNameVsd) <- resUsNameVsd$external_gene_name
-# resUsNameVsd <- resUsNameVsd[,10:15]
+pheatmap(resUsNameVsd[select,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"])
+ 
 # 
-# pheatmap(resUsNameVsd[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+# cibles <- c("ACTG1","ADAMTSL4")
+# pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
 #          cluster_cols=FALSE, annotation_col=samples)
-# 
 
-cibles <- c("ACTG1","ADAMTSL4")
-pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
-         cluster_cols=FALSE, annotation_col=samples)
+
+
+
+
+select <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & resUsName$log2FoldChange>4])
+#select <-select[1:10]
+row.names(samples)=samples$run
+resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
+row.names(resUsNameVsd) <- resUsNameVsd$Row.names
+h=pheatmap(resUsNameVsd[select,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"],fontsize_row=5)
+h
+ggsave(h,file="heatmapUpReg.png")
 
 
 ```

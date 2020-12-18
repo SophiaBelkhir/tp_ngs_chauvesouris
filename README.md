@@ -74,5 +74,3 @@ We obtained the count tables quant.sf for each sample. We have counts for each i
 ### Step 5: Differential expression analyses
 
 **1) Building a count table:**
-
-**1) Creating an index with salmon index:**
