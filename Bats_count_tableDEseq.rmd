@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 #import libraries to be able to build table count for each gene
-library("tximport") #for tximport
+library(tximport) #for tximport
 library(DESeq2) #for the differential expression analysis
 library(biomaRt) #to automatically request ensembl identifiers
 library(dplyr) #for the manipulation of data frames
@@ -189,18 +189,19 @@ pheatmap(assay(vsd)[select,], cluster_rows=TRUE, show_rownames=TRUE,show_colname
          cluster_cols=FALSE, annotation_col=samples)
 
 #version with the names 
-#select2 <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & abs(resUsName$log2FoldChange)>4])
-#row.names(samples)=samples$run
-#resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
-#row.names(resUsNameVsd) <- resUsNameVsd$Row.names
-#h=pheatmap(resUsNameVsd[select2,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
-#           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"],fontsize_row=5)
-#h
+select2 <- na.omit(resUsName$Row.names[resUsName$padj<0.05 & abs(resUsName$log2FoldChange)>4])
+row.names(samples)=samples$run
+resUsNameVsd <- merge(resUsName,assay(vsd),by.x="Row.names",by.y=0)
+row.names(resUsNameVsd) <- resUsNameVsd$Row.names
+h=pheatmap(resUsNameVsd[select2,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+           cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[select,"external_gene_name"],fontsize_row=5)
+h
 #ggsave(h,file="heatmapUpReg.png")
 
 #Version for target selected genes 
-#cibles <- c("SAMD9L","SAMD9", "SAMHD1","RNASEL") #names of the genes of interest
-#pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, #show_rownames=TRUE,show_colnames=FALSE,
-#       cluster_cols=FALSE, annotation_col=samples, #labels_row=resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,"external_gene_name"])
-
+cibles <- c("SAMD9L","SAMD9", "SAMHD1","RNASEL","MORC3","EIF2AK2") #names of the genes of interest
+h2= pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
+       cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,"external_gene_name"])
+h2
+#ggsave(h2,file="heatmap_genesselected.png")
 ```
