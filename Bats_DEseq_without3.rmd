@@ -10,8 +10,7 @@ library(biomaRt) #to automatically request ensembl identifiers
 library(dplyr) #for the manipulation of data frames
 library(tidyr)
 library(data.table)
-#set working directory
-setwd("/ifb/data/mydatalocal/data_from_ftp")
+
 ```
 
 Import the files, we need a variable that contains the name of the files quant.sf
@@ -117,12 +116,12 @@ write.csv(resUsName_wo3,file="/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_fold
 Number of genes up and down regulated
 ```{r}
 table(resUsName_wo3$padj <0.05) #Number of genes identified as significatively differently expressed (with interferon vs without) #696 (with Lib3 was 578)
-table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange>0) #Number of genes significatively UPregulated #521 (with Lib3 was 421)
-table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange<0) #Number of genes significatively DOWNregulated #175 (with Lib3 was 157)
+table(resUsName_wo3$padj <0.05 & resUsName_wo3$log2FoldChange>0) #Number of genes significatively UPregulated #521 (with Lib3 was 421)
+table(resUsName_wo3$padj <0.05 & resUsName_wo3$log2FoldChange<0) #Number of genes significatively DOWNregulated #175 (with Lib3 was 157)
 
 #filter the downregulated and upregulated genes
-UpReg <- filter(resUsName_wo3, padj<0.05 & resUsName$log2FoldChange>0)
-DownReg <- filter(resUsName_wo3, padj<0.05 & resUsName$log2FoldChange<0)
+UpReg <- filter(resUsName_wo3, padj<0.05 & resUsName_wo3$log2FoldChange>0)
+DownReg <- filter(resUsName_wo3, padj<0.05 & resUsName_wo3$log2FoldChange<0)
 AllReg <- filter(resUsName_wo3, padj<0.05)
 ```
 
