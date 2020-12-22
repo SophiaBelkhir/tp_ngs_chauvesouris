@@ -40,21 +40,25 @@ The next step is thus to annotate the transcriptome.
 ### Step 3: Data annotation
 In order to annotate the transcriptome, we need: 1) to identify the ORFs from the assembled transcriptome 2) to predict the likely coding regions 3)  to select and create the database of known coding sequences (CDS) against which we will use BLAST to find homologies 4) to perform a local alignment with BLAST (Basic Local Alignment Search Tool) to identify genes 
 
-**1) Identifying the ORFs with TransDecoder.Longorfs:** 
-We run TransDecoder in two steps, first TransDecoder.Longorfs identifies ORFs within transcript sequences, using the command line in the script **transdec.sh**. The input file is the assembled transcriptome obtained with Trinity, and we use the fasta.gene_trans_map for gene transmap. We also specify -s to indicate the strand specificity.
+**1) Identifying the ORFs with TransDecoder.Longorfs:**
 
-**2) Identifying the CDS with TransDecoder.Predict:** 
+We run TransDecoder in two steps, first TransDecoder.Longorfs identifies ORFs within transcript sequences, using the command line in the script **transdec.sh**. The input file is the assembled transcriptome obtained with Trinity, and we use the fasta.gene_trans_map for gene transmap. We specify -s to indicate the strand specificity, and keep the default value of -m (100) to only consider the sequences that would code for proteins of at least 100 amino acids.
+
+**2) Identifying the CDS with TransDecoder.Predict:**
+
 We then use TransDecoder.Predict to identify candidate coding regions within transcript sequences, with the corresponding command line in the script **transdec.sh**. We specify –single best only to only keep the best candidate for each transcript. 
 
 We obtain trinity.fasta.transdecoder.cds, a file with all the CDS predicted from the assembled transcriptome. In order to infer to what known coding sequences these correspond, we look for homologies with BLAST. 
 
 **3) Construct a reference database for blast with makeblastdb:**
+
 To annotate the CDS from *Myotis velifer* transcriptome, we compare them to human CDS. We thus need to build a blast database containing human CDS.
 We download the known human cds using the wget command from the script **get_human_cds.sh**.
 
 Then we use makeblastdb, using the file with human CDS as input file, and specifying -dbtype 'nucl' -parse_seqids, because we deal with nucleotide sequences, under a fasta format (for command line, see the first part of the **blast.sh** script).
 
 **4) Perform alignment with blastn:**
+
 We then perform the alignment using blastn (because both our query and our database are nucleotides), see the scrip **blast.sh**. 
 We use the output from TransDecoder as the query, and the output from makeblastdb as the database for reference. We define the minimal e-value as 1e-4, and max_target_seqs as 1 to only keep one hit by contig. We choose -outfmt 6 to visualize the output as a table summarizing the main features of each hit.
 
@@ -74,20 +78,27 @@ Of note, only 40% of the reads aligned to the transcriptome, when we expected mo
 We obtained the count tables quant.sf for each sample. We have counts for each isoform, but now want the counts at the level of the gene, to be able to do differential expression analysis. 
 
 **3) Building a count table per gene:**
+
 Based on the quantifications obtained with salmon, we now want to obtain the expression level for each gene (and not just each transcript or isoform), we build a count table in the first few chunks of the r markdown **Bats_count_tableDEseq.rmd**.
 
 ### Step 5: Differential expression analyses
 Since our biological question is to know which genes are differentially expressed in interferon stimulated bat cells compared to control ones, we need to do a differential expression analysis. The code is in **Bats_count_tableDEseq.rmd**. 
 
-**1) DESeq2 analysis**
+**1) DESeq2 analysis:**
+
 DEseq2 is used to do statistical tests to define whether a gene is significantly up or down regulated in the treated condition (+IFN) than in the control. DEseq2 uses a corrected variance (for each gene), and runs a generalized linear model to assess if there is a significant difference of expression between the 2 conditions for each gene. It also calculates a p-value adjusted for multiple tests, using the FDR (False Discover Rate) method. 
 We obtain a table containing different metrics for each gene, including their normalized expression level (BaseMean), the log fold change when comparing IFN/control (log2FoldChange), the p-value and adjusted p-values (padj) indicating the confidence for rejecting the hypothesis that the gene in question is not differentially expressed in the two conditions. We observe that 1457 genes are differentially expressed in IFN+ conditions compared to control.    
 
-**2) Verifications**
-MA-plot
+**2) Verifications:**
 
-PCA
+To visualize and verify the results, we plot a MA-plot and a PCA.
+The MA-plot shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeq dataset. 
+The PCA allows us to verify the clustering of the samples per condition. One of the control samples (Lib3) does not group with the 2 others as expected, we also redid the analysis without this sample, in order to see if it caused an important difference in the results. The DESEq analysis rerun on all samples excluding Lib3 is presented in **Bats_DEseq_without3.rmd** (see the last chunk of this .rmd for a comparison betwwen the number of differentially expressed genes when taking Lib3 into account or not)
 
-**3) Identification of the genes **
+**3) Identification of the genes:**
 
-**4) Analysis and presentation of the data **
+We cross the results of Blast with the outputs from DEseq, in order to identify the names of all the genes identified. To do so, we make the correspondence between ENSEMBL identifiers and external human gene names, using biomaRt. 
+
+**4) Analysis and presentation of the data:**
+
+Finally, to visualize the results, we produced heatmaps, did a Gene Ontology analysis with GOrilla, and compared our results to these of another publication. We did this using the DESeq output obtained when considering all the samples (even Lib3), because there is not a huge difference in the number of genes regulated when considering Lib3 or not, and because we did not want to eliminate one sample out of three and loose statistical power. 
