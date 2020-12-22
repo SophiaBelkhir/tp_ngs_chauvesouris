@@ -48,7 +48,7 @@ for (name in all_files) {
 names(files_Lib) <- names_file #give them names
 ```
 
-Now we build reading table from the trinity gene trans map, to have the correspondance between gene and transcript
+Now we build reading table from the trinity gene trans map, to have the correspondance between gene and transcript.
 ```{r}
 Tab_trini <- read.table("/ifb/data/mydatalocal/data_from_ftp/trinity_data/Trinity_RF.fasta.gene_trans_map") #get the fasta.gene_trans_map
 names(Tab_trini) <- c("GENEID","TXNAME") #to have the right column names
@@ -89,6 +89,8 @@ Now we do control quality, and verify that there is no abnormality with the repl
 ```{r}
 #MA-plot 
 plotMA(res, ylim=c(-2,2))
+
+#We see a high density of points (that correspond to the high number of genes obtained after assembly), and this plot confirms that the significantly differentially expressed genes have a higher fold change that the others. We also can see that there are more upregulated genes than downregulated genes. 
 
 #PCA
 vsd <- vst(dds, blind=FALSE) #DESeq transform (variance stabilizing transformation)
@@ -141,15 +143,17 @@ AllReg <- filter(resUsName, padj<0.05)
 ```
 Export files for Gene Ontology analysis 
 ```{r}
-#export files with gene names for Gene Ontology analysis (GOrilla)
+#export files with gene names for Gene Ontology analysis (inputs for GOrilla)
 write.csv(as.data.frame(resUsName$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_all.csv",quote=FALSE,row.names = FALSE) #background set, all genes found in our data
 write.csv(as.data.frame(UpReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_up.csv",quote=FALSE,row.names = FALSE) #all upregulated genes
 write.csv(as.data.frame(DownReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_down.csv",quote=FALSE,row.names = FALSE) #all downregulated genes
 write.csv(as.data.frame(AllReg$external_gene_name),file="/ifb/data/mydatalocal/data_from_ftp/DESeq/name_all_reg.csv",quote=FALSE,row.names = FALSE) #all regulated genes (up and down)
+
+#GO analysis: nothing significant for doownregulated genes. For upregulated genes, mostly genes involved in immune response, and anti-viral response, whichi is coherent. 
 ```
 Compare our results with existing results
 ```{r}
-#Compare with publication Holzer (+6h IFN)
+#Compare with publication from Holzer (same conditions with +6h IFN)
 #import their data
 resBatHolzer<-read.csv("https://www.rna.uni-jena.de/supplements/mda/data/deseq2/RNA/Mock_6h_RNA_vs_IFN_6h_RNA/deseq2_Mock_6h_RNA_IFN_6h_RNA_full.csv")
 colnames(resBatHolzer)[2] <- c("external_gene_name") #change column name to be the same as ours
@@ -199,7 +203,7 @@ h
 #ggsave(h,file="heatmapUpReg.png")
 
 #Version for target selected genes 
-cibles <- c("SAMD9L","SAMD9", "SAMHD1","RNASEL","MORC3","EIF2AK2") #names of the genes of interest
+cibles <- c("SAMD9", "SAMHD1","RNASEL","MORC3","EIF2AK2") #names of the genes of interest
 h2= pheatmap(resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,10:15], cluster_rows=TRUE, show_rownames=TRUE,show_colnames=FALSE,
        cluster_cols=FALSE, annotation_col=samples, labels_row=resUsNameVsd[resUsNameVsd$external_gene_name%in%cibles,"external_gene_name"])
 h2

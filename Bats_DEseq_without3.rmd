@@ -116,9 +116,9 @@ write.csv(resUsName_wo3,file="/ifb/data/mydatalocal/data_from_ftp/DESeq/Tab_fold
 
 Number of genes up and down regulated
 ```{r}
-table(resUsName_wo3$padj <0.05) #Number of genes identified as significatively differently expressed (with interferon vs without) #696
-table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange>0) #Number of genes significatively UPregulated #521
-table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange<0) #Number of genes significatively DOWNregulated #175
+table(resUsName_wo3$padj <0.05) #Number of genes identified as significatively differently expressed (with interferon vs without) #696 (with Lib3 was 578)
+table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange>0) #Number of genes significatively UPregulated #521 (with Lib3 was 421)
+table(resUsName_wo3$padj <0.05 & resUsName$log2FoldChange<0) #Number of genes significatively DOWNregulated #175 (with Lib3 was 157)
 
 #filter the downregulated and upregulated genes
 UpReg <- filter(resUsName_wo3, padj<0.05 & resUsName$log2FoldChange>0)
