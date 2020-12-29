@@ -4,6 +4,8 @@ The objective is to investigate the specificities of the bats immune system, in 
 To do so, we want to characterize the interferon (IFN) response in bats. We thus aim at studying the transcriptomic changes in response to IFN stimulation in bat cells, and in particular, we want to identify interferon-stimulated genes (ISGs), which are differentially expressed after IFN stimulation.
 
 We focus on *Myotis velifer*, a bat species for which no transcriptomic data was available yet. We will thus need to assemble the transcriptome of *Myotis velifer*, and because no reference transcriptome is available for this species, perform a *de novo* transcriptome assembly. Then we will have to annotate this transcriptome. Finally, we will quantify the expression of the transcripts, and perform a differential expression analysis.
+Here is an overview of the workflow:
+![workflow](/imagesreadme/workflow.png)
 
 ### Step 0: Data obtention
 RNA was extracted from bat cells exposed or not to IFN during 6 hours. 
@@ -38,9 +40,11 @@ We now have an assembled transcriptome (Trinity_RF.fasta), and a table making th
 The next step is thus to annotate the transcriptome. 
 
 ### Step 3: Data annotation
-In order to annotate the transcriptome, we need: 1) to identify the ORFs from the assembled transcriptome 2) to predict the likely coding regions 3)  to select and create the database of known coding sequences (CDS) against which we will use BLAST to find homologies 4) to perform a local alignment with BLAST (Basic Local Alignment Search Tool) to identify genes 
+In order to annotate the transcriptome, we need: 1) to identify the ORFs from the assembled transcriptome 2) to predict the likely coding regions 3)  to select and create the database of known coding sequences (CDS) against which we will use BLAST to find homologies 4) to perform a local alignment with BLAST (Basic Local Alignment Search Tool) to identify genes.
 
 **1) Identifying the ORFs with TransDecoder.Longorfs:**
+
+![Transdecoder principle an doutput](/imagesreadme/transdecoder_ex.png)
 
 We run TransDecoder in two steps, first TransDecoder.Longorfs identifies ORFs within transcript sequences, using the command line in the script **transdec.sh**. The input file is the assembled transcriptome obtained with Trinity, and we use the fasta.gene_trans_map for gene transmap. We specify -s to indicate the strand specificity, and keep the default value of -m (100) to only consider the sequences that would code for proteins of at least 100 amino acids.
 
@@ -61,6 +65,9 @@ Then we use makeblastdb, using the file with human CDS as input file, and specif
 
 We then perform the alignment using blastn (because both our query and our database are nucleotides), see the scrip **blast.sh**. 
 We use the output from TransDecoder as the query, and the output from makeblastdb as the database for reference. We define the minimal e-value as 1e-4, and max_target_seqs as 1 to only keep one hit by contig. We choose -outfmt 6 to visualize the output as a table summarizing the main features of each hit.
+
+Here is an overview of the output from blast:
+![blast output](/imagesreadme/output_blast.png)
 
 ### Step 4: Transcript expression quantification
 We now wish to quantify the expression for each sample. We use salmon to align the reads on the transcript and quantify how many reads align on the transcript. Salmon comprises several tools to perform transcript-level quantification from RNA-seq reads using selective alignment, and we use salmon index and salmon quant.
@@ -102,3 +109,9 @@ We cross the results of Blast with the outputs from DEseq, in order to identify 
 **4) Analysis and presentation of the data:**
 
 Finally, to visualize the results, we produced heatmaps, did a Gene Ontology analysis with GOrilla, and compared our results to these of another publication. We did this using the DESeq output obtained when considering all the samples (even Lib3), because there is not a huge difference in the number of genes regulated when considering Lib3 or not, and because we did not want to eliminate one sample out of three and loose statistical power. 
+
+Here is an extract of the Gene Ontology results for upregulated genes: 
+![blast output](/imagesreadme/GOapercu.png)
+
+### Acknowledgments
+I would like to thank Marie Sémon, Marie Cariou, Corentin Dechaud and Romain Bulteau for the organization of these practicals and their help during this project. I also thank Lucie Étienne, Sandrine Hughes and Benjamin Gillet for providing us with the data (raw RNA sequences). 
